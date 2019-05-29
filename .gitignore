@@ -1,0 +1,4 @@
+.coverage
+can2mqtt/__pycache__/
+env/
+tests/__pycache__/
