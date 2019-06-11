@@ -23,6 +23,9 @@ def can2mqtt(can_frame):
     if msg in [Message.TEMPERATURE, Message.RHUMIDITY,
             Message.ILLUMINANCE, Message.PRESSURE]:
         mqtt_msg = _can2mqtt_simple_sensor_report(can_frame)
+    elif msg in [Message.DUST]:
+        from can2mqtt.bridge_dust import _can2mqtt_dust
+        mqtt_msg = _can2mqtt_dust(can_frame)
     elif msg in [Message.PCA9633, Message.PCA9634]:
         from can2mqtt.bridge_pca963x import _can2mqtt_pca963x
         mqtt_msg = _can2mqtt_pca963x(can_frame)
@@ -82,6 +85,9 @@ def mqtt2can(mqtt_msg):
     if msg in [Message.TEMPERATURE, Message.RHUMIDITY,
             Message.ILLUMINANCE, Message.PRESSURE]:
         can_frame = _mqtt2can_simple_sensor(can_eid, msg, mqtt_msg.payload)
+    elif msg in [Message.DUST]:
+        from can2mqtt.bridge_dust import _mqtt2can_dust
+        can_frame = _mqtt2can_dust(can_eid, msg, mqtt_msg.payload)
     else:
         raise HomeCanMessageNotSupported('mqtt message {} not yet supported'.
                 format(msg.name))
