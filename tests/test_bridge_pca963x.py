@@ -25,9 +25,9 @@ def mqtt_can_messages():
     pca9633_switch_msgs = []
     for op in Operation:
         pca9633_switch_msgs.append(
-            (Mqtt.message('NODE/69/PCA9633/3/AMBER0/SWITCH/{}'.format(op.name),
+            (Mqtt.message('NODE/69/PCA963x/3/AMBER0/SWITCH/{}'.format(op.name),
                           PCA963x.Command.SWITCH_TOGGLE.name),
-             can.Message(arbitration_id = (Message.PCA9633 |
+             can.Message(arbitration_id = (Message.PCA963x |
                      Node.can_encode(0x69) | Device.can_encode(0x03) | op),
                  data=pack('<BB', PCA963x.Channel.AMBER0, PCA963x.Command.SWITCH_TOGGLE)))
         )
@@ -35,23 +35,23 @@ def mqtt_can_messages():
     pca9633_pwm_msgs = []
     for op in Operation:
         pca9633_pwm_msgs.append(
-            (Mqtt.message('NODE/69/PCA9633/3/BLUE0/PWM_VALUE/{}'.format(op.name),
+            (Mqtt.message('NODE/69/PCA963x/3/BLUE0/PWM_VALUE/{}'.format(op.name),
                           'A5'),
-             can.Message(arbitration_id = (Message.PCA9633 |
+             can.Message(arbitration_id = (Message.PCA963x |
                      Node.can_encode(0x69) | Device.can_encode(0x03) | op),
                  data=pack('<BBB', PCA963x.Channel.BLUE0, PCA963x.Command.PWM_VALUE, 0xA5)))
         )
         pca9633_pwm_msgs.append(
-            (Mqtt.message('NODE/5A/PCA9633/3/BLUE0/PWM_BRIGHTNESS/{}'.format(op.name),
+            (Mqtt.message('NODE/5A/PCA963x/3/BLUE0/PWM_BRIGHTNESS/{}'.format(op.name),
                           '40'),
-             can.Message(arbitration_id = (Message.PCA9633 |
+             can.Message(arbitration_id = (Message.PCA963x |
                      Node.can_encode(0x5A) | Device.can_encode(0x03) | op),
                  data=pack('<BBB', PCA963x.Channel.BLUE0, PCA963x.Command.PWM_BRIGHTNESS, 0x40)))
         )
         pca9633_pwm_msgs.append(
-            (Mqtt.message('NODE/5B/PCA9633/3/BLUE0/PWM_SLEEP/{}'.format(op.name),
+            (Mqtt.message('NODE/5B/PCA963x/3/BLUE0/PWM_SLEEP/{}'.format(op.name),
                           'E10'),
-             can.Message(arbitration_id = (Message.PCA9633 |
+             can.Message(arbitration_id = (Message.PCA963x |
                      Node.can_encode(0x5B) | Device.can_encode(0x03) | op),
                  data=pack('<BBH', PCA963x.Channel.BLUE0, PCA963x.Command.PWM_SLEEP, 0xE10)))
         )
@@ -59,9 +59,9 @@ def mqtt_can_messages():
     pca9633_rgb_msgs = []
     #for op in Operation:
     #    pca9633_rgb_msgs.append(
-    #        (Mqtt.message('NODE/69/PCA9633/3/RGB0/PWM_VALUE/{}'.format(op.name),
+    #        (Mqtt.message('NODE/69/PCA963x/3/RGB0/PWM_VALUE/{}'.format(op.name),
     #                      PCA963x.Command.PWM_VALUE),
-    #         can.Message(arbitration_id = (Message.PCA9633 |
+    #         can.Message(arbitration_id = (Message.PCA963x |
     #                 Node.can_encode(0x69) | Device.can_encode(0x03) | op),
     #             data=pack('<BBBBB', PCA963x.Channel.AMBER0, PCA963x.Command.PWM_VALUE),
     #             extended_id=True))
@@ -70,9 +70,9 @@ def mqtt_can_messages():
     pca9633_rgba_msgs = []
     #for op in Operation:
     #    pca9633_rgba_msgs.append(
-    #        (Mqtt.message('NODE/69/PCA9633/3/RGB0/PWM_VALUE/{}'.format(op.name),
+    #        (Mqtt.message('NODE/69/PCA963x/3/RGB0/PWM_VALUE/{}'.format(op.name),
     #                      PCA963x.Command.SWITCH_TOGGLE.name),
-    #         can.Message(arbitration_id = (Message.PCA9633 |
+    #         can.Message(arbitration_id = (Message.PCA963x |
     #                 Node.can_encode(0x69) | Device.can_encode(0x03) | op),
     #             data=pack('<BB', PCA963x.Channel.AMBER0, PCA963x.Command.SWITCH_TOGGLE),
     #             extended_id=True))
@@ -99,17 +99,17 @@ def mqtt_can_messages():
     #####              Operation.STATE),
     #####          data=pack('<BB', PCA963x.Channel.BLUE1, PCA963x.Command.SWITCH_ON),
     #####          extended_id=True)),
-    #####     (Mqtt.message('NODE/69/PCA9633/3/RED0/PWM/SET',
+    #####     (Mqtt.message('NODE/69/PCA963x/3/RED0/PWM/SET',
     #####                   '234'),
-    #####      can.Message(arbitration_id = (Message.PCA9633 |
+    #####      can.Message(arbitration_id = (Message.PCA963x |
     #####              Node.can_encode(0x69) |
     #####              Device.can_encode(3) |
     #####              Operation.SET),
     #####          data=pack('<BBB', PCA963x.Channel.RED0, PCA963x.Command.PWM_VALUE, 0x80),
     #####          extended_id=True)),
-    #####     (Mqtt.message('NODE/A5/PCA9633/78/RGB0/PWM/SET',
+    #####     (Mqtt.message('NODE/A5/PCA963x/78/RGB0/PWM/SET',
     #####                   '12,89,AB'),
-    #####      can.Message(arbitration_id = (Message.PCA9633 |
+    #####      can.Message(arbitration_id = (Message.PCA963x |
     #####              Node.can_encode(0xA5) |
     #####              Device.can_encode(0x78) |
     #####              Operation.SET),

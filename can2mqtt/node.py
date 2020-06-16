@@ -7,7 +7,14 @@ _hc_node_mask  = 0x3FF << _hc_node_shift
 
 
 ##
+def _encode(node_id):
+    return ((node_id << _hc_node_shift) & _hc_node_mask)
+
+
+##
 class Node(object):
+
+    HA_NID_BROADCAST    = _encode(0x3FF)
 
     @staticmethod
     def mqtt_decode(mqtt_node):

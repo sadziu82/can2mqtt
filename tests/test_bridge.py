@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import can
+import json
 import pytest
 import paho.mqtt.client as mqttc #.MQTTMessage
 
@@ -16,11 +17,35 @@ from can2mqtt.excp import HomeCanMessageError, HomeCanMessageNotSupported
 
 from can2mqtt.bridge import can2mqtt, mqtt2can, _can2mqtt_simple_sensor_report
 
+from can2mqtt.home_automation import KeyAction, DigitalOutput
+
 
 ## fixtures
 @pytest.fixture()
 def mqtt_can_messages():
     return [
+        (Mqtt.message('NODE/69/PING/3/QUERY', '0xDEAD'),
+         can.Message(arbitration_id = (Message.PING |
+                 Node.can_encode(0x69) |
+                 Device.can_encode(3) |
+                 Operation.QUERY),
+             data=pack('<H', 0xDEAD))),
+        (Mqtt.message('NODE/89/DATETIME/7/SET',
+                      json.dumps({"year": 2020, "month": 6, "day": 16,
+                                 "hour": 1, "minute": 23, "second": 45, "dayofweek": 2})),
+         can.Message(arbitration_id = (Message.DATETIME |
+                 Node.can_encode(0x89) |
+                 Device.can_encode(7) |
+                 Operation.SET),
+             data=pack('<HBBBBBB', 2020, 6, 16, 1, 23, 45, 2))),
+        (Mqtt.message('NODE/89/KEY/17/EVENT',
+                      json.dumps({"keycode": 0x45, "action": KeyAction.UP.name,
+                                 "ar_count": 5, "mp_count": 3})),
+         can.Message(arbitration_id = (Message.KEY |
+                 Node.can_encode(0x89) |
+                 Device.can_encode(0x17) |
+                 Operation.EVENT),
+             data=pack('<BBBB', 0x45, 2, 5, 3))),
         (Mqtt.message('NODE/69/TEMPERATURE/3/STATE', '12.34'),
          can.Message(arbitration_id = (Message.TEMPERATURE |
                  Node.can_encode(0x69) |
@@ -45,6 +70,13 @@ def mqtt_can_messages():
                  Device.can_encode(9) |
                  Operation.STATE),
              data=pack('<H', 1013))),
+        (Mqtt.message('NODE/D4/DIGITAL_OUTPUT/9/SET',
+                      json.dumps({"cmd": DigitalOutput.ON.name})),
+         can.Message(arbitration_id = (Message.DIGITAL_OUTPUT |
+                 Node.can_encode(0xD4) |
+                 Device.can_encode(9) |
+                 Operation.SET),
+             data=pack('<B', DigitalOutput.ON.value))),
     ]
 
 
@@ -78,7 +110,7 @@ def can_message_discovery():
 @pytest.fixture()
 def bad_can_messages():
     return [
-         can.Message(arbitration_id = 123,
+         can.Message(arbitration_id = 0x12345678,
              data=pack('<f', 12.34)),
     ]
 
@@ -95,6 +127,8 @@ def bad_mqtt_messages():
 
 def test_can2mqtt_ok(mqtt_can_messages):
     for mqtt_msg, can_frame in mqtt_can_messages:
+        #print(mqtt_msg.payload)
+        #print(can2mqtt(can_frame).payload)
         assert mqtt_msg == can2mqtt(can_frame)
 
 

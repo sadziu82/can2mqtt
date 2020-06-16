@@ -17,29 +17,36 @@ def _encode(msg_id):
 ##
 class Message(IntEnum):
 
-    DATETIME            = _encode(0x001)
-    KEYBOARD            = _encode(0x002)
-    TEMPERATURE         = _encode(0x010)
-    RHUMIDITY           = _encode(0x011)
-    ILLUMINANCE         = _encode(0x012)
-    PRESSURE            = _encode(0x013)
-    DUST                = _encode(0x014)
-    ANALOG_OUTPUT       = _encode(0x020)
-    DIGITAL_OUTPUT      = _encode(0x021)
-    PWM_OUTPUT          = _encode(0x022)
-    RGB_OUTPUT          = _encode(0x023)
-    RGBA_OUTPUT         = _encode(0x024)
-    ANALOG_INPUT        = _encode(0x030)
-    DIGITAL_INPUT       = _encode(0x031)
-    PWM_INPUT           = _encode(0x032)
-    PCA9633             = _encode(0x040)
-    PCA9634             = _encode(0x041)
-    GESTURE             = _encode(0x050)
-    MOTION_SENSOR       = _encode(0x0A0)
-    DISCOVERY           = _encode(0x0D0)
-    FIRMWARE            = _encode(0x0E0)
-    ALARM               = _encode(0x0F0)
-    INTRUSION           = _encode(0x0F1)
+    PING                = _encode(0x00)
+    DATETIME            = _encode(0x01)
+    KEY                 = _encode(0x02)
+    ## sensors
+    TEMPERATURE         = _encode(0x10)
+    RHUMIDITY           = _encode(0x11)
+    ILLUMINANCE         = _encode(0x12)
+    PRESSURE            = _encode(0x13)
+    MOISTURE            = _encode(0x14)
+    DUST                = _encode(0x15)
+    GESTURE             = _encode(0x16)
+    MOTION              = _encode(0x17)
+    ## inputs
+    ANALOG_INPUT        = _encode(0x30)
+    DIGITAL_INPUT       = _encode(0x31)
+    PWM_INPUT           = _encode(0x32)
+    ## outputs
+    ANALOG_OUTPUT       = _encode(0x38)
+    DIGITAL_OUTPUT      = _encode(0x39)
+    PWM_OUTPUT          = _encode(0x3A)
+    ## lights
+    WS2812B             = _encode(0x40)
+    PCA963x             = _encode(0x41)
+    ## complex devices
+    COVER               = _encode(0x60)
+    ##
+    DISCOVERY           = _encode(0xD0)
+    FIRMWARE            = _encode(0xE0)
+    ALARM               = _encode(0xF0)
+    INTRUSION           = _encode(0xF1)
 
     @staticmethod
     def mqtt_decode(mqtt_op):
