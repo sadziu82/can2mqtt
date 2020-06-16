@@ -4,13 +4,20 @@
 
 import can
 import paho.mqtt.client as mqtt_client
-import paho.mqtt.subscribe as mqtt_subscribe
+
+from time import time
 
 from can2mqtt.logging import logger
 from can2mqtt.excp import HomeCanMessageError
 from can2mqtt.bridge import can2mqtt, mqtt2can
 
 import logging
+
+##
+MQTT_HOST = '192.168.105.2'
+MQTT_PORT = 1883
+MQTT_TOPIC = 'CAN2MQT'
+MQTT_PREFIX = 'NODE/#'
 
 
 ##
@@ -20,7 +27,7 @@ def on_mqtt_message(client, can_bus, mqtt_msg):
         can_msg = mqtt2can(mqtt_msg)
         can_bus.send(can_msg)
     except HomeCanMessageError as e:
-        logger.error('mqtt message handling on topic {}: {}'.format(
+        logger.error('mqtt message handling error on topic {}: {}'.format(
                     mqtt_msg.topic, e))
     except Exception as e:
         print('*** {} {}'.format(str(mqtt_msg.topic), e))
@@ -33,30 +40,33 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     ##
     #bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
-    can_bus = can.interface.Bus(channel='test', bustype='virtual')
+    #can_bus = can.interface.Bus(channel='test', bustype='virtual')
+    can_bus = can.interface.Bus(channel='vcan0', bustype='socketcan_native')
 
-    mqttc = mqtt_client.Client("can2mqtt")
+    mqttc = mqtt_client.Client("CAN2MQTT", userdata=can_bus)
     mqttc.on_message = on_mqtt_message
-    mqttc.user_data_set(can_bus)
-    mqttc.connect("192.168.105.2", 1883)
-    mqttc.subscribe('#', 0)
+    mqttc.reconnect_delay_set(1, 10)
+    mqttc.will_set(MQTT_TOPIC, '0xDEAD', 0, retain=True)
+    mqttc.connect(host=MQTT_HOST, port=MQTT_PORT, keepalive=60)
     mqttc.loop_start()
+    mqttc.subscribe(MQTT_PREFIX, 0)
 
     should_stop = False
     while not should_stop:
         try:
-            can_msg = can_bus.recv(1)
+            can_msg = can_bus.recv(5)
             if can_msg:
                 mqtt_msg = can2mqtt(can_msg)
                 mqttc.publish(topic=mqtt_msg.topic,
                         payload=mqtt_msg.payload,
                         retain=False)
+            mqttc.publish(topic=MQTT_TOPIC,
+                          payload='{:d}'.format(int(time())),
+                          retain=True)
         except KeyboardInterrupt as e:
             print('exiting on keyboard request')
             should_stop = True
         except Exception as e:
             print(str(e))
-        else:
-            print('brak nowych danych')
 
-    mqttc.unsubscribe('#')
+    mqttc.disconnect()
