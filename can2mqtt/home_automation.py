@@ -19,3 +19,15 @@ class DigitalOutput(IntEnum):
     OFF         = 0x00
     ON          = 0x01
     TOGGLE      = 0x02
+
+
+##
+class Cover(IntEnum):
+
+    UNKNOWN     = 0x00
+    CLOSED      = 0x01
+    CLOSING     = 0x02
+    STOPPED     = 0x03
+    OPENING     = 0x04
+    OPEN        = 0x05
+    FAILURE     = 0x06

@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 
+##
+import os
 import can
+import configparser
 import paho.mqtt.client as mqtt_client
 
 from time import time
@@ -12,12 +15,6 @@ from can2mqtt.excp import HomeCanMessageError
 from can2mqtt.bridge import can2mqtt, mqtt2can
 
 import logging
-
-##
-MQTT_HOST = '192.168.105.2'
-MQTT_PORT = 1883
-MQTT_TOPIC = 'CAN2MQT'
-MQTT_PREFIX = 'NODE/#'
 
 
 ##
@@ -33,23 +30,37 @@ def on_mqtt_message(client, can_bus, mqtt_msg):
         print('*** {} {}'.format(str(mqtt_msg.topic), e))
         #pass
 
+##
+def config_read():
+    config = configparser.ConfigParser()
+    config.read([
+                'can2mqtt.ini',
+                os.path.expanduser('~/.can2mqtt.ini'),
+                '/etc/default/can2mqtt.ini',
+    ])
+    return config
+
 
 ##
 if __name__ == "__main__":
     ##
+    config = config_read()
+    ##
     logger.setLevel(logging.INFO)
     ##
-    #bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
-    #can_bus = can.interface.Bus(channel='test', bustype='virtual')
-    can_bus = can.interface.Bus(channel='vcan0', bustype='socketcan_native')
+    can_bus = can.interface.Bus(channel=config['canbus']['channel'],
+                                bustype=config['canbus']['bustype'])
 
-    mqttc = mqtt_client.Client("CAN2MQTT", userdata=can_bus)
+    mqttc = mqtt_client.Client(config['mqtt']['client_id'],
+                               userdata=can_bus)
     mqttc.on_message = on_mqtt_message
     mqttc.reconnect_delay_set(1, 10)
-    mqttc.will_set(MQTT_TOPIC, '0xDEAD', 0, retain=True)
-    mqttc.connect(host=MQTT_HOST, port=MQTT_PORT, keepalive=60)
+    mqttc.will_set(config['mqtt']['will_topic'], '0xDEAD', 0, retain=True)
+    mqttc.connect(host=config['mqtt']['host'],
+                  port=int(config['mqtt']['port']),
+                  keepalive=60)
     mqttc.loop_start()
-    mqttc.subscribe(MQTT_PREFIX, 0)
+    mqttc.subscribe('{}/#'.format(config['mqtt']['prefix']), 0)
 
     should_stop = False
     while not should_stop:
@@ -60,7 +71,7 @@ if __name__ == "__main__":
                 mqttc.publish(topic=mqtt_msg.topic,
                         payload=mqtt_msg.payload,
                         retain=False)
-            mqttc.publish(topic=MQTT_TOPIC,
+            mqttc.publish(topic=config['mqtt']['will_topic'],
                           payload='{:d}'.format(int(time())),
                           retain=True)
         except KeyboardInterrupt as e:

@@ -17,7 +17,7 @@ from can2mqtt.excp import HomeCanMessageError, HomeCanMessageNotSupported
 
 from can2mqtt.bridge import can2mqtt, mqtt2can, _can2mqtt_simple_sensor_report
 
-from can2mqtt.home_automation import KeyAction, DigitalOutput
+from can2mqtt.home_automation import KeyAction, DigitalOutput, Cover
 
 
 ## fixtures
@@ -77,6 +77,13 @@ def mqtt_can_messages():
                  Device.can_encode(9) |
                  Operation.SET),
              data=pack('<B', DigitalOutput.ON.value))),
+        (Mqtt.message('NODE/34/COVER/2/STATE',
+                      json.dumps({"cmd": Cover.OPEN.name, "position": 30})),
+         can.Message(arbitration_id = (Message.COVER |
+                 Node.can_encode(0x34) |
+                 Device.can_encode(2) |
+                 Operation.STATE),
+             data=pack('<BB', Cover.OPEN.value, 30))),
     ]
 
 

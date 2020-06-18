@@ -16,7 +16,7 @@ from can2mqtt.node import Node
 from can2mqtt.mqtt import Mqtt
 from can2mqtt.excp import HomeCanMessageError, HomeCanMessageNotSupported
 
-from can2mqtt.home_automation import KeyAction, DigitalOutput
+from can2mqtt.home_automation import KeyAction, DigitalOutput, Cover
 
 def can2mqtt(can_frame):
     """ Convert CAN frame into MQTT message
@@ -31,7 +31,7 @@ def can2mqtt(can_frame):
     elif msg in [Message.TEMPERATURE, Message.RHUMIDITY,
             Message.ILLUMINANCE, Message.PRESSURE]:
         mqtt_msg = _can2mqtt_simple_sensor_report(can_frame)
-    elif msg in [Message.DUST]:
+    elif msg == Message.DUST:
         from can2mqtt.bridge_dust import _can2mqtt_dust
         mqtt_msg = _can2mqtt_dust(can_frame)
     elif msg == Message.DIGITAL_OUTPUT:
@@ -39,6 +39,8 @@ def can2mqtt(can_frame):
     elif msg  == Message.PCA963x:
         from can2mqtt.bridge_pca963x import _can2mqtt_pca963x
         mqtt_msg = _can2mqtt_pca963x(can_frame)
+    elif msg  == Message.COVER:
+        mqtt_msg = _can2mqtt_cover(can_frame)
     else:
         raise HomeCanMessageNotSupported('can message {} type not yet '
                 'supported'.format(msg.name))
@@ -148,6 +150,26 @@ def _can2mqtt_digital_output(can_frame):
             payload)
 
 
+def _can2mqtt_cover(can_frame):
+    """ Parse HomeCan CAN frame containing cover message
+    """
+    node_id = Node.can_decode(can_frame.arbitration_id)
+    device_id = Device.can_decode(can_frame.arbitration_id)
+    msg = Message.can_decode(can_frame.arbitration_id)
+    op = Operation.can_decode(can_frame.arbitration_id)
+    if msg == Message.COVER:
+        cmd_raw, position, = unpack('<BB', can_frame.data)
+        cmd = Cover(cmd_raw).name
+        payload = json.dumps({"cmd": cmd, "position": position})
+    else:
+        raise HomeCanMessageNotSupported('can message {} type not '
+                'supported by {}'.format(msg.name,
+                    sys._getframe().f_code.co_name))
+    return Mqtt.message('NODE/{:X}/{}/{:X}/{}'.format(
+                node_id, msg.name, device_id, op.name),
+            payload)
+
+
 def mqtt2can(mqtt_msg):
     """ Convert MQTT message into CAN frame
     """
@@ -187,6 +209,8 @@ def mqtt2can(mqtt_msg):
         can_frame = _mqtt2can_dust(can_eid, msg, mqtt_msg.payload)
     elif msg == Message.DIGITAL_OUTPUT:
         can_frame = _mqtt2can_digital_output(can_eid, msg, mqtt_msg.payload)
+    elif msg == Message.COVER:
+        can_frame = _mqtt2can_cover(can_eid, msg, mqtt_msg.payload)
     else:
         raise HomeCanMessageNotSupported('mqtt message {} not yet supported'.
                 format(msg.name))
@@ -254,6 +278,19 @@ def _mqtt2can_digital_output(can_eid, msg, payload):
     if msg == Message.DIGITAL_OUTPUT:
         js = json.loads(payload)
         data = pack('<B', DigitalOutput[js['cmd']].value)
+    else:
+        raise HomeCanMessageNotSupported('can message {} type not '
+                'supported by {}'.format(msg.name,
+                    sys._getframe().f_code.co_name))
+    return can.Message(arbitration_id=can_eid, data=data)
+
+
+def _mqtt2can_cover(can_eid, msg, payload):
+    """ Generate HomeCan CAN frame containing cover message
+    """
+    if msg == Message.COVER:
+        js = json.loads(payload)
+        data = pack('<BB', Cover[js['cmd']].value, js['position'])
     else:
         raise HomeCanMessageNotSupported('can message {} type not '
                 'supported by {}'.format(msg.name,
