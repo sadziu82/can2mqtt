@@ -132,7 +132,8 @@ def _mqtt2can_pca963x(can_eid, msg, channel, payload):
     ## single channel commands
     if PCA963x.Channel[channel].value < PCA963x.Channel.RGB0:
         payload = payload.decode('utf-8')
-        if payload in ['OFF', 'ON', 'TOGGLE']:
+        if payload in [PCA963x.Command.OFF.name, PCA963x.Command.ON.name,
+                   PCA963x.Command.TOGGLE.name]:
             data = pack('<BB', PCA963x.Channel[channel].value,
                         PCA963x.Command[payload].value)
         elif re.fullmatch('[0-9]+', payload):
