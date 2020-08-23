@@ -22,17 +22,24 @@ from can2mqtt.bridge_pca963x import PCA963x
 ## fixtures
 @pytest.fixture()
 def mqtt_can_messages():
-    pca963x_switch_msgs = []
+    pca963x_single_channel_msgs = []
     for op in [Operation.SET]:
-        pca963x_switch_msgs.append(
+        pca963x_single_channel_msgs.append(
             (Mqtt.message('NODE/69/PCA963x/3/AMBER0/{}'.format(op.name),
-                          PCA963x.Command.TOGGLE.name),
+                          bytes(PCA963x.Command.TOGGLE.name, 'utf-8')),
              can.Message(arbitration_id = (Message.PCA963x |
                      Node.can_encode(0x69) | Device.can_encode(0x03) | op),
                  data=pack('<BB', PCA963x.Channel.AMBER0, PCA963x.Command.TOGGLE)))
         )
+        pca963x_single_channel_msgs.append(
+            (Mqtt.message('NODE/69/PCA963x/3/AMBER0/{}'.format(op.name),
+                          bytes('123', 'utf-8')),
+             can.Message(arbitration_id = (Message.PCA963x |
+                     Node.can_encode(0x69) | Device.can_encode(0x03) | op),
+                 data=pack('<BBB', PCA963x.Channel.AMBER0, PCA963x.Command.PWM, 123)))
+        )
 
-    return pca963x_switch_msgs
+    return pca963x_single_channel_msgs
 
 
 def test_pca9633_mqtt2can_on_off_toggle(mqtt_can_messages):
