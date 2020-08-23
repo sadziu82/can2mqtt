@@ -24,10 +24,14 @@ class DigitalOutput(IntEnum):
 ##
 class Cover(IntEnum):
 
-    UNKNOWN     = 0x00
-    CLOSED      = 0x01
-    CLOSING     = 0x02
-    STOPPED     = 0x03
-    OPENING     = 0x04
-    OPEN        = 0x05
-    FAILURE     = 0x06
+    UNKNOWN      = 0x00
+    OPEN         = 0x01
+    OPENING      = 0x02
+    STOP         = 0x03
+    CLOSED       = 0x04     ## same as next on purpose
+    CLOSE        = 0x04
+    CLOSING      = 0x05
+    POSITION     = 0x06     ## same as next on purpose
+    SET_POSITION = 0x06
+    FAILED       = 0x07
+

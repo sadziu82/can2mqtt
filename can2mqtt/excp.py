@@ -8,3 +8,7 @@ class HomeCanMessageError(Exception):
 
 class HomeCanMessageNotSupported(Exception):
     pass
+
+
+class HomeCanBridgingForbidden(Exception):
+    pass

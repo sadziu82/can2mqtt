@@ -15,7 +15,7 @@ from can2mqtt.message import Message
 from can2mqtt.device import Device
 from can2mqtt.node import Node
 from can2mqtt.mqtt import Mqtt
-from can2mqtt.excp import HomeCanMessageError, HomeCanMessageNotSupported
+from can2mqtt.excp import HomeCanMessageError, HomeCanMessageNotSupported, HomeCanBridgingForbidden
 
 
 class PCA963x(object):
@@ -52,13 +52,10 @@ class PCA963x(object):
         RGBA3   = 0x2C
 
     class Command(IntEnum):
-        SWITCH_OFF      = 0x00
-        SWITCH_ON       = 0x01
-        SWITCH_TOGGLE   = 0x02
-
-        PWM_VALUE       = 0x80
-        PWM_BRIGHTNESS  = 0x81
-        PWM_SLEEP       = 0x82
+        OFF         = 0x00
+        ON          = 0x01
+        TOGGLE      = 0x02
+        PWM         = 0x04
 
 
 def _can2mqtt_pca963x(can_frame):
@@ -80,8 +77,8 @@ def _can2mqtt_pca963x(can_frame):
               PCA963x.Channel.RED1, PCA963x.Channel.GREEN1,
               PCA963x.Channel.BLUE1, PCA963x.Channel.AMBER1]:
         ##
-        if cmd in [PCA963x.Command.SWITCH_OFF, PCA963x.Command.SWITCH_ON,
-                   PCA963x.Command.SWITCH_TOGGLE]:
+        if cmd in [PCA963x.Command.OFF, PCA963x.Command.ON,
+                   PCA963x.Command.TOGGLE]:
             payload = cmd.name
             return Mqtt.message('NODE/{:X}/{}/{:X}/{}/{}/{}'.format(
                         node_id, msg.name, device_id, ch.name, 'SWITCH', op.name),
@@ -122,3 +119,32 @@ def _can2mqtt_pca963x(can_frame):
 
     raise HomeCanMessageNotSupported('pca963x message configuration not '
             'supported by {}'.format(sys._getframe().f_code.co_name))
+
+
+def _mqtt2can_pca963x(can_eid, msg, channel, payload):
+    """ Generate HomeCan CAN frame containing PCA963x command
+    """
+    if msg != Message.PCA963x:
+        raise HomeCanMessageNotSupported('can message {} type not '
+                'supported by {}'.format(msg.name,
+                    sys._getframe().f_code.co_name))
+
+    ## single channel commands
+    if PCA963x.Channel[channel].value < PCA963x.Channel.RGB0:
+        if payload in ['OFF', 'ON', 'TOGGLE']:
+            data = pack('<BB', PCA963x.Channel[channel].value,
+                        PCA963x.Command[payload].value)
+        elif re.match(r'^/[0-9]+$/', payload):
+            data = pack('<BBB', PCA963x.Channel[channel].value,
+                        PCA963x.Command.PWM.value, int(payload))
+        else:
+            
+            raise HomeCanMessageNotSupported('can message {} type not '
+                                             'supported by {}'.format(msg.name,
+                                             sys._getframe().f_code.co_name))
+    else:
+        raise HomeCanMessageNotSupported('can message {} type not '
+                'supported by {}'.format(msg.name,
+                    sys._getframe().f_code.co_name))
+
+    return can.Message(arbitration_id=can_eid, data=data)

@@ -11,7 +11,7 @@ import paho.mqtt.client as mqtt_client
 from time import time
 
 from can2mqtt.logging import logger
-from can2mqtt.excp import HomeCanMessageError
+from can2mqtt.excp import HomeCanMessageError, HomeCanBridgingForbidden
 from can2mqtt.bridge import can2mqtt, mqtt2can
 
 import logging
@@ -20,15 +20,20 @@ import logging
 ##
 def on_mqtt_message(client, can_bus, mqtt_msg):
     try:
-        logger.debug('got message on {}'.format(mqtt_msg.topic))
+        logger.debug('mqtt message on {}'.format(mqtt_msg.topic))
         can_msg = mqtt2can(mqtt_msg)
         can_bus.send(can_msg)
+    except HomeCanBridgingForbidden as e:
+        logger.debug('ignoring message on topic {}: {}'.format(
+                     mqtt_msg.topic, e))
     except HomeCanMessageError as e:
         logger.error('mqtt message handling error on topic {}: {}'.format(
-                    mqtt_msg.topic, e))
+                     mqtt_msg.topic, e))
     except Exception as e:
-        print('*** {} {}'.format(str(mqtt_msg.topic), e))
-        #pass
+        logger.error('unhandled error during mqtt message processing\n\t'
+                     'topic: {}\n\tpayload: {}\n\terror: {}'.
+                     format(mqtt_msg.topic, str(mqtt_msg.payload), e))
+
 
 ##
 def config_read():
@@ -45,8 +50,8 @@ def config_read():
 if __name__ == "__main__":
     ##
     config = config_read()
-    ##
-    logger.setLevel(logging.INFO)
+    if 'log_level' in config['global']:
+        logger.setLevel(config['global']['log_level'])
     ##
     can_bus = can.interface.Bus(channel=config['canbus']['channel'],
                                 bustype=config['canbus']['bustype'])

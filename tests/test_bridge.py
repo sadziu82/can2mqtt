@@ -22,21 +22,21 @@ from can2mqtt.home_automation import KeyAction, DigitalOutput, Cover
 
 ## fixtures
 @pytest.fixture()
-def mqtt_can_messages():
+def can_mqtt_messages():
     return [
-        (Mqtt.message('NODE/69/PING/3/QUERY', '0xDEAD'),
+        (Mqtt.message('NODE/69/PING/3/EVENT', '0xDEAD'),
          can.Message(arbitration_id = (Message.PING |
                  Node.can_encode(0x69) |
                  Device.can_encode(3) |
-                 Operation.QUERY),
+                 Operation.EVENT),
              data=pack('<H', 0xDEAD))),
-        (Mqtt.message('NODE/89/DATETIME/7/SET',
+        (Mqtt.message('NODE/89/DATETIME/7/STATE',
                       json.dumps({"year": 2020, "month": 6, "day": 16,
                                  "hour": 1, "minute": 23, "second": 45, "dayofweek": 2})),
          can.Message(arbitration_id = (Message.DATETIME |
                  Node.can_encode(0x89) |
                  Device.can_encode(7) |
-                 Operation.SET),
+                 Operation.STATE),
              data=pack('<HBBBBBB', 2020, 6, 16, 1, 23, 45, 2))),
         (Mqtt.message('NODE/89/KEY/17/EVENT',
                       json.dumps({"keycode": 0x45, "action": KeyAction.UP.name,
@@ -70,12 +70,12 @@ def mqtt_can_messages():
                  Device.can_encode(9) |
                  Operation.STATE),
              data=pack('<H', 1013))),
-        (Mqtt.message('NODE/D4/DIGITAL_OUTPUT/9/SET',
-                      json.dumps({"cmd": DigitalOutput.ON.name})),
+        (Mqtt.message('NODE/D4/DIGITAL_OUTPUT/9/STATE',
+                      bytes(json.dumps({"state": DigitalOutput.ON.name}), 'utf-8')),
          can.Message(arbitration_id = (Message.DIGITAL_OUTPUT |
                  Node.can_encode(0xD4) |
                  Device.can_encode(9) |
-                 Operation.SET),
+                 Operation.STATE),
              data=pack('<B', DigitalOutput.ON.value))),
         (Mqtt.message('NODE/34/COVER/2/STATE',
                       json.dumps({"cmd": Cover.OPEN.name, "position": 30})),
@@ -83,6 +83,49 @@ def mqtt_can_messages():
                  Node.can_encode(0x34) |
                  Device.can_encode(2) |
                  Operation.STATE),
+             data=pack('<BB', Cover.OPEN.value, 30))),
+    ]
+
+
+@pytest.fixture()
+def mqtt_can_messages():
+    return [
+        (Mqtt.message('NODE/69/PING/3/QUERY', '0xDEAD'),
+         can.Message(arbitration_id = (Message.PING |
+                 Node.can_encode(0x69) |
+                 Device.can_encode(3) |
+                 Operation.QUERY),
+             data=pack('<H', 0xDEAD))),
+        (Mqtt.message('NODE/89/DATETIME/7/SET',
+                      json.dumps({"year": 2020, "month": 6, "day": 16,
+                                 "hour": 1, "minute": 23, "second": 45, "dayofweek": 2})),
+         can.Message(arbitration_id = (Message.DATETIME |
+                 Node.can_encode(0x89) |
+                 Device.can_encode(7) |
+                 Operation.SET),
+             data=pack('<HBBBBBB', 2020, 6, 16, 1, 23, 45, 2))),
+        (Mqtt.message('NODE/89/KEY/17/QUERY',
+                      json.dumps({"keycode": 0x45, "action": KeyAction.UP.name,
+                                 "ar_count": 5, "mp_count": 3})),
+         can.Message(arbitration_id = (Message.KEY |
+                 Node.can_encode(0x89) |
+                 Device.can_encode(0x17) |
+                 Operation.QUERY),
+             data=pack('<BBBB', 0x45, 2, 5, 3))),
+        (Mqtt.message('NODE/D4/DIGITAL_OUTPUT/9/SET',
+                      bytes(json.dumps({"cmd": DigitalOutput.ON.name}), 'utf-8')),
+         can.Message(arbitration_id = (Message.DIGITAL_OUTPUT |
+                 Node.can_encode(0xD4) |
+                 Device.can_encode(9) |
+                 Operation.SET),
+             data=pack('<B', DigitalOutput.ON.value))),
+        (Mqtt.message('NODE/34/COVER/2/SET',
+                      bytes(json.dumps({"cmd": Cover.OPEN.name,
+                                       "position": 30}), 'utf-8')),
+         can.Message(arbitration_id = (Message.COVER |
+                 Node.can_encode(0x34) |
+                 Device.can_encode(2) |
+                 Operation.SET),
              data=pack('<BB', Cover.OPEN.value, 30))),
     ]
 
@@ -96,7 +139,7 @@ def mqtt_can_messages_not_supported():
                  Device.can_encode(9) |
                  Operation.STATE),
              data=None)),
-        (Mqtt.message('NODE/F0/PWM_INPUT/9/STATE', '1013'),
+        (Mqtt.message('NODE/F0/PWM_INPUT/9/SET', '1013'),
          can.Message(arbitration_id = (Message.PWM_INPUT |
                  Node.can_encode(0xF0) |
                  Device.can_encode(9) |
@@ -132,10 +175,10 @@ def bad_mqtt_messages():
     ]
 
 
-def test_can2mqtt_ok(mqtt_can_messages):
-    for mqtt_msg, can_frame in mqtt_can_messages:
-        #print(mqtt_msg.payload)
-        #print(can2mqtt(can_frame).payload)
+def test_can2mqtt_ok(can_mqtt_messages):
+    for mqtt_msg, can_frame in can_mqtt_messages:
+        print(mqtt_msg.payload)
+        print(can2mqtt(can_frame).payload)
         assert mqtt_msg == can2mqtt(can_frame)
 
 

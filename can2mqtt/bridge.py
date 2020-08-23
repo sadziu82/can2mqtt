@@ -14,7 +14,7 @@ from can2mqtt.message import Message
 from can2mqtt.device import Device
 from can2mqtt.node import Node
 from can2mqtt.mqtt import Mqtt
-from can2mqtt.excp import HomeCanMessageError, HomeCanMessageNotSupported
+from can2mqtt.excp import HomeCanMessageError, HomeCanMessageNotSupported, HomeCanBridgingForbidden
 
 from can2mqtt.home_automation import KeyAction, DigitalOutput, Cover
 
@@ -22,6 +22,11 @@ def can2mqtt(can_frame):
     """ Convert CAN frame into MQTT message
     """
     msg = Message.can_decode(can_frame.arbitration_id)
+    op = Operation.can_decode(can_frame.arbitration_id)
+
+    if op not in [Operation.STATE, Operation.EVENT]:
+        raise HomeCanBridgingForbidden('{} may not be translated from CAN into MQTT'.format(op.name))
+
     if msg == Message.PING:
         mqtt_msg = _can2mqtt_ping(can_frame)
     elif msg == Message.DATETIME:
@@ -36,7 +41,7 @@ def can2mqtt(can_frame):
         mqtt_msg = _can2mqtt_dust(can_frame)
     elif msg == Message.DIGITAL_OUTPUT:
         mqtt_msg = _can2mqtt_digital_output(can_frame)
-    elif msg  == Message.PCA963x:
+    elif msg == Message.PCA963x:
         from can2mqtt.bridge_pca963x import _can2mqtt_pca963x
         mqtt_msg = _can2mqtt_pca963x(can_frame)
     elif msg  == Message.COVER:
@@ -140,7 +145,7 @@ def _can2mqtt_digital_output(can_frame):
     if msg == Message.DIGITAL_OUTPUT:
         cmd_raw, = unpack('<B', can_frame.data)
         cmd = DigitalOutput(cmd_raw).name
-        payload = json.dumps({"cmd": cmd})
+        payload = bytes(json.dumps({"state": cmd}), 'utf-8')
     else:
         raise HomeCanMessageNotSupported('can message {} type not '
                 'supported by {}'.format(msg.name,
@@ -188,6 +193,9 @@ def mqtt2can(mqtt_msg):
         raise HomeCanMessageError('wrong mqtt message type')
     op = Operation[match.group('op')]
 
+    if op not in [Operation.QUERY, Operation.SET, Operation.RESET]:
+        raise HomeCanBridgingForbidden('{} may not be translated from MQTT into CAN'.format(op.name))
+
     ## FIXME should we translate all messages back and forth?
     #if op not in [HC_MESSAGE.QUERY, HC_MESSAGE.SET]:
     #    raise HomeCanMessageError('wrong mqtt message type')`
@@ -209,6 +217,10 @@ def mqtt2can(mqtt_msg):
         can_frame = _mqtt2can_dust(can_eid, msg, mqtt_msg.payload)
     elif msg == Message.DIGITAL_OUTPUT:
         can_frame = _mqtt2can_digital_output(can_eid, msg, mqtt_msg.payload)
+    elif msg == Message.PCA963x:
+        from can2mqtt.bridge_pca963x import _mqtt2can_pca963x
+        extra = match.group('extra')
+        can_frame = _mqtt2can_pca963x(can_eid, msg, extra, mqtt_msg.payload)
     elif msg == Message.COVER:
         can_frame = _mqtt2can_cover(can_eid, msg, mqtt_msg.payload)
     else:
@@ -276,7 +288,7 @@ def _mqtt2can_digital_output(can_eid, msg, payload):
     """ Generate HomeCan CAN frame containing digital output message
     """
     if msg == Message.DIGITAL_OUTPUT:
-        js = json.loads(payload)
+        js = json.loads(payload.decode('utf-8'))
         data = pack('<B', DigitalOutput[js['cmd']].value)
     else:
         raise HomeCanMessageNotSupported('can message {} type not '
@@ -289,7 +301,7 @@ def _mqtt2can_cover(can_eid, msg, payload):
     """ Generate HomeCan CAN frame containing cover message
     """
     if msg == Message.COVER:
-        js = json.loads(payload)
+        js = json.loads(payload.decode('utf-8'))
         data = pack('<BB', Cover[js['cmd']].value, js['position'])
     else:
         raise HomeCanMessageNotSupported('can message {} type not '
